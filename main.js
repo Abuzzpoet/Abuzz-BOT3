@@ -2,6 +2,7 @@ let { WAConnection: _WAConnection, WA_MESSAGE_STUB_TYPES } = require('@adiwajshi
 let { generate } = require('qrcode-terminal')
 let qrcode = require('qrcode')
 let simple = require('./lib/simple')
+let logs = require('./lib/logs')
 let yargs = require('yargs/yargs')
 let syntaxerror = require('syntax-error')
 let fetch = require('node-fetch')
@@ -9,12 +10,15 @@ let chalk = require('chalk')
 let fs = require('fs')
 let path = require('path')
 let util = require('util')
+let { spawnSync } = require('child_process')
+let Readline = require('readline')
+let rl = Readline.createInterface(process.stdin, process.stdout)
 let WAConnection = simple.WAConnection(_WAConnection)
 
 
-global.owner = ['6289636827082','628','628'] // Put your number here
-global.mods = ['6289636827082','628'] // Want some help?
-global.prems = ['6289636827082','628'] // Premium user has unlimited limit
+global.owner = ['6289636827083'],['628'] // Put your number here
+global.mods = ['6289636827083'],['628'] // Want some help?
+global.prems = ['6289636827083'],['6285816995967'] // Premium user has unlimited limit
 global.APIs = { // API Prefix
   // name: 'https://website'
   nrtm: 'https://nurutomo.herokuapp.com',
@@ -22,14 +26,15 @@ global.APIs = { // API Prefix
 }
 global.APIKeys = { // APIKey Here
   // 'https://website': 'apikey'
-  'https://api.xteam.xyz': 'xteamapi'
+  'https://api.xteam.xyz': 'test'
 }
 
 
-global.API = (name, path = '/', query = {}, options = {}) => fetch((name in global.APIs ? url = global.APIs[name] : name) + path + (query ? '?' + Object.entries(query).map(([key, val]) => encodeURICompoment(key) + (val ? '=' + encodeURIComponent(val) : '')).join('&') : ''), options)
+global.API = (name, path = '/', query = {}, apikeyqueryname) => (name in global.APIs ? global.APIs[name] : name) + path + (query || apikeyqueryname ? '?' + new URLSearchParams(Object.entries({...query, ...(apikeyqueryname ? { [apikeyqueryname]: global.APIKeys[name in global.APIs ? global.APIs[name] : name]} : {})})) : '')
 global.timestamp = {
   start: new Date
 }
+global.LOGGER = logs()
 const PORT = process.env.PORT || 3000
 let opts = yargs(process.argv.slice(2)).exitProcess(false).parse()
 global.opts = Object.freeze({...opts})
@@ -40,9 +45,11 @@ if (!global.DATABASE.data.users) global.DATABASE.data = {
   users: {},
   groups: {},
   chats: {},
+  stats: {},
 }
 if (!global.DATABASE.data.groups) global.DATABASE.data.groups = {}
 if (!global.DATABASE.data.chats) global.DATABASE.data.chats = {}
+if (!global.DATABASE.data.stats) global.DATABASE.data.stats = {}
 if (opts['server']) {
   let express = require('express')
   global.app = express()
@@ -59,22 +66,23 @@ if (opts['big-qr'] || opts['server']) conn.on('qr', qr => generate(qr, { small: 
 if (opts['server']) conn.on('qr', qr => { global.qr = qr })
 conn.on('credentials-updated', () => fs.writeFileSync(authFile, JSON.stringify(conn.base64EncodedAuthInfo())))
 let lastJSON = JSON.stringify(global.DATABASE.data)
-setInterval(async () => {
+if (!opts['test']) setInterval(() => {
   conn.logger.info('Saving database . . .')
   if (JSON.stringify(global.DATABASE.data) == lastJSON) conn.logger.info('Database is up to date')
   else {
     global.DATABASE.save()
-    conn.logger.info('Done saving database,IG: rajifarmansyah!')
+    conn.logger.info('Done saving database!')
     lastJSON = JSON.stringify(global.DATABASE.data)
   }
 }, 60 * 1000) // Save every minute
+
+const isNumber = x => typeof x === 'number' && !isNaN(x)
 conn.handler = async function (m) {
   try {
   	simple.smsg(this, m)
     m.exp = 0
     m.limit = false
     try {
-      const isNumber = x => typeof x === 'number' && !isNaN(x)
       let user
       if (user = global.DATABASE._data.users[m.sender]) {
         if (!isNumber(user.exp)) user.exp = 0
@@ -82,7 +90,7 @@ conn.handler = async function (m) {
         if (!isNumber(user.lastclaim)) user.lastclaim = 0
       } else global.DATABASE._data.users[m.sender] = {
         exp: 0,
-        limit: 20,
+        limit: 10,
         lastclaim: 0,
       }
       
@@ -117,6 +125,7 @@ conn.handler = async function (m) {
   	  if ((usedPrefix = (_prefix.exec(m.text) || '')[0])) {
         let noPrefix = m.text.replace(usedPrefix, '')
   		  let [command, ...args] = noPrefix.trim().split` `.filter(v=>v)
+        args = args || []
         let _args = noPrefix.trim().split` `.slice(1)
         let text = _args.join` `
   		  command = (command || '').toLowerCase()
@@ -135,8 +144,9 @@ conn.handler = async function (m) {
               false
 
   			if (!isAccept) continue
-        let isMods = isOwner || global.mods.map(v => v.replace(/[^0-9]/g, '6289636827082') + '@s.whatsapp.net').includes(m.sender)
-        let isPrems = isROwner || global.prems.map(v => v.replace(/[^0-9]/g, '6289636827082') + '@s.whatsapp.net').includes(m.sender)
+        m.plugin = name
+        let isMods = isOwner || global.mods.map(v => v.replace(/[^0-9]/g, '') + '@s.whatsapp.net').includes(m.sender)
+        let isPrems = isROwner || global.prems.map(v => v.replace(/[^0-9]/g, '') + '@s.whatsapp.net').includes(m.sender)
         let groupMetadata = m.isGroup ? await this.groupMetadata(m.chat) : {}
         let participants = m.isGroup ? groupMetadata.participants : []
         let user = m.isGroup ? participants.find(u => u.jid == m.sender) : {} // User Data
@@ -191,7 +201,7 @@ conn.handler = async function (m) {
           continue // Limit habis
         }
         try {
-          await plugin(m, {
+          await plugin.call(this, m, {
             usedPrefix,
             noPrefix,
             _args,
@@ -212,7 +222,7 @@ conn.handler = async function (m) {
           // Error occured
           m.error = e
           console.log(e)
-          m.reply(util.format(e))
+          if (e) m.reply(util.format(e))
         } finally {
           if (m.limit) m.reply(+ m.limit + ' Limit terpakai')
         }
@@ -221,11 +231,37 @@ conn.handler = async function (m) {
   	}
   } finally {
     //console.log(global.DATABASE._data.users[m.sender])
-    let user
-    if (m && m.sender && (user = global.DATABASE._data.users[m.sender])) {
-      user.exp += m.exp
-      user.limit -= m.limit * 1
-    }
+    let user, stats = global.DATABASE._data.stats
+    if (m) {
+      if (m.sender && (user = global.DATABASE._data.users[m.sender])) {
+        user.exp += m.exp
+        user.limit -= m.limit * 1
+      }
+      
+      let stat
+      if (m.plugin) {
+        let now = + new Date
+        if (m.plugin in stats) {
+          stat = stats[m.plugin]
+          if (!isNumber(stat.total)) stat.total = 1
+          if (!isNumber(stat.success)) stat.success = m.error ? 0 : 1
+          if (!isNumber(stat.last)) stat.last = now
+          if (!isNumber(stat.lastSuccess)) stat.lastSuccess = m.error ? 0 : now
+        } else stat = stats[m.plugin] = {
+          total: 1,
+          success: m.error ? 0 : 1,
+          last: now,
+          lastSuccess: m.error ? 0 : now
+        }
+        stat.total += 1
+        stat.last = now
+        if (!m.error) {
+          stat.success += 1
+          stat.lastSuccess = now
+        }
+      }
+    } 
+    
     try {
       require('./lib/print')(m, this)
     } catch (e) {
@@ -234,14 +270,15 @@ conn.handler = async function (m) {
   }
 }
 conn.welcome = 'Hai, @user!\nSelamat datang di grup @subject'
-conn.bye = 'Selamat tinggal, @user!'
+conn.bye = 'Selamat tinggal @user!'
 conn.onAdd = async function ({ m, participants }) {
   let chat = global.DATABASE._data.chats[m.key.remoteJid]
   if (!chat.welcome) return
   for (let user of participants) {
-    let pp = fs.readFileSync('./src/avatar_contact.png')
+    let pp = './src/avatar_contact.png'
     try {
-      pp = await this.getProfilePicture(user).catch(() => {})
+      pp = await this.getProfilePicture(user)
+    } catch (e) {
     } finally {
       let text = (chat.sWelcome || this.welcome || conn.welcome || 'Welcome, @user!').replace('@user', '@' + user.split('@')[0]).replace('@subject', this.getName(m.key.remoteJid))
       this.sendFile(m.key.remoteJid, pp, 'pp.jpg', text, m, false, {
@@ -258,9 +295,10 @@ conn.onLeave = async function  ({ m, participants }) {
   if (!chat.welcome) return
   for (let user of participants) {
     if (this.user.jid == user) continue
-    let pp = fs.readFileSync('./src/avatar_contact.png')
+    let pp = './src/avatar_contact.png'
     try {
-      pp = await this.getProfilePicture(user).catch(() => {})
+      pp = await this.getProfilePicture(user)
+    } catch (e) {
     } finally {
       let text = (chat.sBye || this.bye || conn.bye || 'Bye, @user!').replace('@user', '@' + user.split('@')[0])
       this.sendFile(m.key.remoteJid, pp, 'pp.jpg', text, m, false, {
@@ -273,6 +311,7 @@ conn.onLeave = async function  ({ m, participants }) {
 }
 
 conn.onDelete = async function (m) {
+  if (m.key.fromMe) return
   let chat = global.DATABASE._data.chats[m.key.remoteJid]
   if (chat.delete) return
   await this.reply(m.key.remoteJid, `
@@ -293,19 +332,25 @@ conn.on('message-delete', conn.onDelete)
 conn.on('group-add', conn.onAdd)
 conn.on('group-leave', conn.onLeave)
 conn.on('error', conn.logger.error)
-conn.on('close', async () => {
-  if (conn.state == 'close') {
-    await conn.loadAuthInfo(authFile)
-    await conn.connect()
-    global.timestamp.connect = new Date
-  }
+conn.on('close', () => {
+  setTimeout(async () => {
+    try {
+      if (conn.state === 'close') {
+        await conn.loadAuthInfo(authFile)
+        await conn.connect()
+        global.timestamp.connect = new Date
+      }
+    } catch (e) {
+      conn.logger.error(e)
+    }
+  }, 5000)
 })
 
 global.dfail = (type, m, conn) => {
   let msg = {
-    rowner: 'Perintah ini hanya dapat digunakan oleh _*OWNER Bot 1*_',
+    rowner: 'Perintag ini hanya dapat digunakan oleh _*OWWNER!1!1!*_',
     owner: 'Perintah ini hanya dapat digunakan oleh _*Owner Bot*_!',
-    mods: 'Perintah ini hanya dapat digunakan oleh _*Moderator BOT*_ !',
+    mods: 'Perintah ini hanya dapat digunakan oleh _*Moderator*_ !',
     premium: 'Perintah ini hanya untuk member _*Premium*_ !',
     group: 'Perintah ini hanya dapat digunakan di grup!',
     private: 'Perintah ini hanya dapat digunakan di Chat Pribadi!',
@@ -321,24 +366,35 @@ if (opts['test']) {
     name: 'test',
     phone: {}
   }
-  conn.sendMessage = (chatId, content, type, opts) => conn.emit('message-new', {
-    messageStubParameters: [],
-    key: {
-      fromMe: true,
-      remoteJid: chatId,
-      id: opts ? '3EB0ABCDEF45' : 'biasa'
-    },
-    message: {
-      [type]: content
-    },
-    messageStubType: 0,
-    timestamp: +new Date
-  })
-  process.stdin.on('data', chunk => conn.sendMessage('123@s.whatsapp.net', chunk.toString().trimEnd(), 'conversation'))
+  conn.chats
+  conn.prepareMessageMedia = (buffer, mediaType, options = {}) => {
+    return {
+      [mediaType]: {
+        url: '',
+        mediaKey: '',
+        mimetype: options.mimetype,
+        fileEncSha256: '',
+        fileSha256: '',
+        fileLength: buffer.length,
+        seconds: options.duration,
+        fileName: options.filename || 'file',
+        gifPlayback: options.mimetype == 'image/gif' || undefined,
+        caption: options.caption,
+        ptt: options.ptt
+      }
+    }
+  }
+  conn.sendMessage = async (chatId, content, type, opts = {}) => {
+    let message = await conn.prepareMessageContent(content, type, opts)
+    let waMessage = conn.prepareMessageFromContent(chatId, message, opts)
+    if (type == 'conversation') waMessage.key.id = require('crypto').randomBytes(16).toString('hex').toUpperCase()
+    conn.emit('message-new', waMessage)
+  }
+  rl.on('line', line => conn.sendMessage('123@s.whatsapp.net', line.trim(), 'conversation'))
 } else {
-  process.stdin.on('data', chunk => {
+  rl.on('line', line => {
     global.DATABASE.save()
-    process.send(chunk.toString().trimEnd())
+    process.send(line.trim())
   })
   conn.connect().then(() => {
     global.timestamp.connect = new Date
@@ -347,15 +403,12 @@ if (opts['test']) {
 process.on('uncaughtException', console.error)
 // let strQuot = /(["'])(?:(?=(\\?))\2.)*?\1/
 
+let pluginFolder = path.join(__dirname, 'plugins')
 let pluginFilter = filename => /\.js$/.test(filename)
-global.plugins = Object.fromEntries(
-  fs.readdirSync(path.join(__dirname, 'plugins'))
-    .filter(pluginFilter)
-    .map(filename => [filename, {}])
-)
-for (let filename in global.plugins) {
+global.plugins = {}
+for (let filename of fs.readdirSync(pluginFolder).filter(pluginFilter)) {
   try {
-    global.plugins[filename] = require('./plugins/' + filename)
+    global.plugins[filename] = require(path.join(pluginFolder, filename))
   } catch (e) {
     conn.logger.error(e)
     delete global.plugins[filename]
@@ -364,17 +417,17 @@ for (let filename in global.plugins) {
 console.log(Object.keys(global.plugins))
 global.reload = (event, filename) => {
   if (pluginFilter(filename)) {
-    let dir = './plugins/' + filename
-    if (require.resolve(dir) in require.cache) {
-      delete require.cache[require.resolve(dir)]
-      if (fs.existsSync(require.resolve(dir))) conn.logger.info(`re - require plugin '${dir}'`)
+    let dir = path.join(pluginFolder, filename)
+    if (dir in require.cache) {
+      delete require.cache[dir]
+      if (fs.existsSync(dir)) conn.logger.info(`re - require plugin '${filename}'`)
       else {
-        conn.logger.warn(`deleted plugin '${dir}'`)
+        conn.logger.warn(`deleted plugin '${filename}'`)
         return delete global.plugins[filename]
       }
-    } else conn.logger.info(`requiring new plugin '${dir}'`)
-    let err = syntaxerror(fs.readFileSync(dir))
-    if (err) conn.logger.error(`syntax error while loading '${dir}'\n${err}`)
+    } else conn.logger.info(`requiring new plugin '${filename}'`)
+    let err = syntaxerror(fs.readFileSync(dir), filename)
+    if (err) conn.logger.error(`syntax error while loading '${filename}'\n${err}`)
     else try {
       global.plugins[filename] = require(dir)
     } catch (e) {
@@ -386,3 +439,21 @@ Object.freeze(global.reload)
 fs.watch(path.join(__dirname, 'plugins'), global.reload)
 
 process.on('exit', () => global.DATABASE.save())
+
+
+
+// Quick Test
+let ffmpeg = spawnSync('ffmpeg')
+let ffmpegWebp = spawnSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-filter_complex', 'color', '-frames:v', '1', '-f', 'webp', '-'])
+let convert = spawnSync('convert')
+global.support = {
+  ffmpeg: ffmpeg.status,
+  ffmpegWebp: ffmpeg.status && ffmpegWebp.stderr.length == 0 && ffmpegWebp.stdout.length > 0,
+  convert: convert.status
+}
+Object.freeze(global.support)
+
+if (!global.support.ffmpeg) conn.logger.warn('Please install ffmpeg for sending videos (pkg install ffmpeg)')
+if (!global.support.ffmpegWebp) conn.logger.warn('Stickers may not animated without libwebp on ffmpeg (--emable-ibwebp while compiling ffmpeg)')
+if (!global.support.convert) conn.logger.warn('Stickers may not work without imagemagick if libwebp on ffmpeg doesnt isntalled (pkg install imagemagick)')
+
