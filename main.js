@@ -16,9 +16,9 @@ let rl = Readline.createInterface(process.stdin, process.stdout)
 let WAConnection = simple.WAConnection(_WAConnection)
 
 
-global.owner = ['6289636827083'],['628'] // Put your number here
-global.mods = ['6289636827083'],['628'] // Want some help?
-global.prems = ['6289636827083'],['6285816995967'] // Premium user has unlimited limit
+global.owner = ['6289636827082'] // Put your number here
+global.mods = ['6289636827082'] // Want some help?
+global.prems = ['6289636827082'] // Premium user has unlimited limit
 global.APIs = { // API Prefix
   // name: 'https://website'
   nrtm: 'https://nurutomo.herokuapp.com',
@@ -120,7 +120,7 @@ conn.handler = async function (m) {
   	for (let name in global.plugins) {
   	  let plugin = global.plugins[name]
       if (!plugin) continue
-      if (plugin.tags && plugin.tags.includes('admin')) continue
+      if (!opts['restrict']) if (plugin.tags && plugin.tags.includes('admin')) continue
       let _prefix = plugin.customPrefix ? plugin.customPrefix : conn.prefix ? conn.prefix : global.prefix
   	  if ((usedPrefix = (_prefix.exec(m.text) || '')[0])) {
         let noPrefix = m.text.replace(usedPrefix, '')

@@ -1,0 +1,27 @@
+{
+  "users": {
+    "6289636827082@s.whatsapp.net": {
+      "exp": 1000000000,
+      "limit": 10000000,
+      "lastclaim": 0
+    }
+  },
+  "groups": {},
+  "chats": {
+    "6282171978174@s.whatsapp.net": {
+      "isBanned": false,
+      "welcome": false,
+      "sWelcome": "",
+      "sBye": "",
+      "delete": true
+    }
+  },
+  "stats": {
+    "menu.js": {
+      "total": 2,
+      "success": 2,
+      "last": 1613365125237,
+      "lastSuccess": 1613365125237
+    }
+  }
+}
