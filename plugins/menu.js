@@ -22,6 +22,15 @@ let handler  = async (m, { conn, usedPrefix: _p }) => {
       second: 'numeric'
     })
     let _uptime = process.uptime() * 1000
+    let _muptime
+    if (process.send) {
+      process.send('uptime')
+      _muptime = await new Promise(resolve => {
+        process.once('message', resolve)
+        setTimeout(resolve, 1000)
+      }) * 1000
+    }
+    let muptime = clockString(_muptime)
     let uptime = clockString(_uptime)
     let totalreg = Object.keys(global.DATABASE._data.users).length
     let tags = {
@@ -30,8 +39,6 @@ let handler  = async (m, { conn, usedPrefix: _p }) => {
       'xp': 'Exp & Limit',
       'sticker': 'Sticker',
       'kerang': 'Kerang Ajaib',
-      'wallpaper': 'Wallpaper',
-      'game': 'Game',
       'quotes': 'Quotes',
       'admin': 'Admin',
       'group': 'Group',
@@ -70,7 +77,7 @@ let handler  = async (m, { conn, usedPrefix: _p }) => {
 ├ ◩ Total : *%exp XP*
 ├ ◩ Tersisa : *%limit Limit*
 ╿
-├ ◩ Hari : *%week*
+├ ◩ Hari : *%week* / %weton
 ├ ◩ Tanggal : *%date*
 ├ ◩ Waktu : *%time*
 ├ ◩ Lama Aktif : *%uptime*
@@ -90,17 +97,16 @@ let handler  = async (m, { conn, usedPrefix: _p }) => {
 ╭────「 _Rules_ 」
 ├ ◩ Telpon/VC = BAN/BLOK
 ├ ◩ Spam = BAN/BLOK
-├ ◩ GUNAKAN BOT SEBAIK BAIK YA!
-├ ◩ KASIH BOT YA JEDA 10 DETIK!
-├ ◩ KALAU NEMU BUG MOHON LAPORKAN BIAR DI FIX!
+├ ◩ BOT JOIN GC LAIN IZIN DLU SAMA OWNER YA!
+├ ◩ Selengkapnya #rules
 ╰──────────────────────
 
 %readmore`
     let header = conn.menu.header || '╭────「 %category 」'
     let body   = conn.menu.body   || '├ ❏  %cmd %islimit'
     let footer = conn.menu.footer || '╰──────────────────────\n'
-    let after  = conn.menu.after  || (conn.user.jid == global.conn.user.jid ? '◩ BY ABUZZ-BOT ◩' : `Powered by: ${global.conn.user.jid.split`@`[0]}`) + `\n*%npmname@^%version*\n\`\`\`\%npmdesc\`\`\``
-    let _text  = before + '◩ BY ABUZZ-BOT ◩\n'
+    let after  = conn.menu.after  || (conn.user.jid == global.conn.user.jid ? '' : `Powered by https://wa.me/${global.conn.user.jid.split`@`[0]}`) + `\n*%npmname@^%version*\n\`\`\`\%npmdesc\`\`\``
+    let _text  = before + '\n'
     for (let tag in groups) {
       _text += header.replace(/%category/g, tags[tag]) + '\n'
       for (let menu of groups[tag]) {
@@ -113,7 +119,7 @@ let handler  = async (m, { conn, usedPrefix: _p }) => {
     text =  typeof conn.menu == 'string' ? conn.menu : typeof conn.menu == 'object' ? _text : ''
     let replace = {
       '%': '%',
-      p: _p, uptime,
+      p: _p, uptime, muptime,
       npmname: package.name,
       npmdesc: package.description,
       version: package.version,
@@ -149,9 +155,8 @@ const more = String.fromCharCode(8206)
 const readMore = more.repeat(4001)
 
 function clockString(ms) {
-  let h = Math.floor(ms / 3600000)
-  let m = Math.floor(ms / 60000) % 60
-  let s = Math.floor(ms / 1000) % 60
-  console.log({ms,h,m,s})
+  let h = isNaN(ms) ? '--' : Math.floor(ms / 3600000)
+  let m = isNaN(ms) ? '--' : Math.floor(ms / 60000) % 60
+  let s = isNaN(ms) ? '--' : Math.floor(ms / 1000) % 60
   return [h, m, s].map(v => v.toString().padStart(2, 0) ).join(':')
 }
