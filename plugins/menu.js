@@ -40,6 +40,7 @@ let handler  = async (m, { conn, usedPrefix: _p }) => {
       'sticker': 'Sticker',
       'kerang': 'Kerang Ajaib',
       'quotes': 'Quotes',
+      'wallpaper': 'Wallpaper',
       'admin': 'Admin',
       'group': 'Group',
       'internet': 'Internet',
@@ -87,6 +88,8 @@ let handler  = async (m, { conn, usedPrefix: _p }) => {
 ╭────「 _Sosmed_ 」
 ├ ◩ Wa Owner:
 ╿      Wa.me/6289636827082
+├ ◩ Id Free Fire:
+╿      759994404
 ├ ◩ FOLLOW ME:
 ╿      https://www.instagram.com/rajifarmansyah
 ├ ◩ Git Hub:
