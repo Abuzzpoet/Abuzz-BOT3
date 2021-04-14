@@ -41,6 +41,7 @@ let handler  = async (m, { conn, usedPrefix: _p }) => {
       'kerang': 'Kerang Ajaib',
       'quotes': 'Quotes',
       'wallpaper': 'Wallpaper',
+      'confiq': 'CONFIQ/ANTI LAG',
       'admin': 'Admin',
       'group': 'Group',
       'internet': 'Internet',
@@ -90,8 +91,8 @@ let handler  = async (m, { conn, usedPrefix: _p }) => {
 ╿      Wa.me/6289636827082
 ├ ◩ Id Free Fire:
 ╿      759994404
-├ ◩ FOLLOW ME:
-╿      https://www.instagram.com/rajifarmansyah
+├ ◩ CONFIQ ANTI LAG FREE FIRE:
+╿      KETIK #confiq
 ├ ◩ Git Hub:
 ╿      https://github.com/Abuzzpoet/Abuzz-BOT3
 ╿   *_THANKS BY DRAWL NAG!_*
