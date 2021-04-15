@@ -14,7 +14,6 @@ handler.admin = false
 handler.botAdmin = true
 
 handler.fail = null
-handler.limit = true
 
 module.exports = handler
 

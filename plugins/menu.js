@@ -1,10 +1,11 @@
 let fs = require ('fs')
 let path = require('path')
+let levelling = require('../lib/levelling')
 let handler  = async (m, { conn, usedPrefix: _p }) => {
   try {
     let package = JSON.parse(fs.readFileSync(path.join(__dirname, '../package.json')))
-    let exp = global.DATABASE.data.users[m.sender].exp
-    let limit = global.DATABASE.data.users[m.sender].limit
+    let { exp, limit, level } = global.DATABASE.data.users[m.sender]
+    let { min, xp, max } = levelling.xpRange(level, global.multiplier)
     let name = conn.getName(m.sender)
     let d = new Date
     let locale = 'id'
@@ -33,24 +34,26 @@ let handler  = async (m, { conn, usedPrefix: _p }) => {
     let muptime = clockString(_muptime)
     let uptime = clockString(_uptime)
     let totalreg = Object.keys(global.DATABASE._data.users).length
+    let rtotalreg = Object.values(global.DATABASE._data.users).filter(user => user.registered == true).length
     let tags = {
       'main': 'Main',
-      'info': 'Info BOT',
       'xp': 'Exp & Limit',
       'sticker': 'Sticker',
       'kerang': 'Kerang Ajaib',
       'quotes': 'Quotes',
-      'wallpaper': 'Wallpaper',
-      'confiq': 'CONFIQ/ANTI LAG',
       'admin': 'Admin',
       'group': 'Group',
+      'premium': 'Premium',
       'internet': 'Internet',
+      'nulis': 'MagerNulis & Logo',
       'downloader': 'Downloader',
       'tools': 'Tools',
+      'fun': 'Fun',
       'jadibot': 'Jadi Bot',
       'owner': 'Owner',
       'host': 'Host',
       'advanced': 'Advanced',
+      'info': 'Info',
       '': 'No Category',
     }
     for (let plugin of Object.values(global.plugins))
@@ -74,15 +77,18 @@ let handler  = async (m, { conn, usedPrefix: _p }) => {
     }
     conn.menu = conn.menu ? conn.menu : {}
     let before = conn.menu.before || `
-╭────「 ${conn.getName(conn.user.jid)} 」
+╭────「 o${conn.getName(conn.user.jid)} 」
 ╿     Hai, %name !
 ├ ◩ Total : *%exp XP*
 ├ ◩ Tersisa : *%limit Limit*
+╿    Level *%level (%exp / %maxexp)* [%xp4levelup lagi untuk levelup]
+╿     %totalexp XP in Total
+╿
 ╿
 ├ ◩ Hari : *%week* / %weton
 ├ ◩ Tanggal : *%date*
 ├ ◩ Waktu : *%time*
-├ ◩ Lama Aktif : *%uptime*
+├ ◩ Lama Aktif : *%uptime (%muptime)*
 ├ ◩ Database : %totalreg Nomor
 ╰──────────────────────
 
@@ -91,8 +97,6 @@ let handler  = async (m, { conn, usedPrefix: _p }) => {
 ╿      Wa.me/6289636827082
 ├ ◩ Id Free Fire:
 ╿      759994404
-├ ◩ CONFIQ ANTI LAG FREE FIRE:
-╿      KETIK #confiq
 ├ ◩ Git Hub:
 ╿      https://github.com/Abuzzpoet/Abuzz-BOT3
 ╿   *_THANKS BY DRAWL NAG!_*
@@ -106,9 +110,9 @@ let handler  = async (m, { conn, usedPrefix: _p }) => {
 ╰──────────────────────
 
 %readmore`
-    let header = conn.menu.header || '╭────「 %category 」'
-    let body   = conn.menu.body   || '├ ❏  %cmd %islimit'
-    let footer = conn.menu.footer || '╰──────────────────────\n'
+    let header = conn.menu.header || '╭─「 %category 」'
+    let body   = conn.menu.body   || '├ ◩ %cmd%islimit'
+    let footer = conn.menu.footer || '╰──────────────────\n'
     let after  = conn.menu.after  || (conn.user.jid == global.conn.user.jid ? '' : `Powered by https://wa.me/${global.conn.user.jid.split`@`[0]}`) + `\n*%npmname@^%version*\n\`\`\`\%npmdesc\`\`\``
     let _text  = before + '\n'
     for (let tag in groups) {
@@ -127,18 +131,22 @@ let handler  = async (m, { conn, usedPrefix: _p }) => {
       npmname: package.name,
       npmdesc: package.description,
       version: package.version,
+      exp: exp - min,
+      maxexp: xp,
+      totalexp: exp,
+      xp4levelup: max - exp,
       github: package.homepage ? package.homepage.url || package.homepage : '[unknown github url]',
-      exp, limit, name, weton, week, date, time, totalreg,
+      level, limit, name, weton, week, date, time, totalreg, rtotalreg,
       readmore: readMore
     }
-    text = text.replace(new RegExp(`%(${Object.keys(replace).join`|`})`, 'g'), (_, name) => replace[name])
+    text = text.replace(new RegExp(`%(${Object.keys(replace).join`|`})`, 'g'), (_, name) => ''+replace[name])
     conn.reply(m.chat, text.trim(), m)
   } catch (e) {
     conn.reply(m.chat, 'Maaf, menu sedang error', m)
     throw e
   }
 }
-handler.help = ['menu','help','?']
+handler.help = ['menu','help']
 handler.tags = ['main']
 handler.command = /^(menu|help|\?)$/i
 handler.owner = false
