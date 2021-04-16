@@ -86,6 +86,6 @@ No bot, just print received messages and add users to database
 #### Author / Creator : [`Nurutomo`](https://GitHub.com/Nurutomo)
                           : [`Drawl Nag`](https://youtube.com/c/DrawlNag)
 
-## Watermark By: [`Abuzzpoet`]✓
+## Watermark By: [`Abuzzpoet`] 
 
 <img src="https://raw.githubusercontent.com/TheDudeThatCode/TheDudeThatCode/master/Assets/Mario_Gameplay.gif"/>
