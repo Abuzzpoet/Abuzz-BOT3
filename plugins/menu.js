@@ -36,11 +36,13 @@ let handler  = async (m, { conn, usedPrefix: _p }) => {
     let totalreg = Object.keys(global.DATABASE._data.users).length
     let rtotalreg = Object.values(global.DATABASE._data.users).filter(user => user.registered == true).length
     let tags = {
+      'info': 'Info',
       'main': 'Main',
       'xp': 'Exp & Limit',
       'sticker': 'Sticker',
       'kerang': 'Kerang Ajaib',
       'quotes': 'Quotes',
+      'game': 'Game',
       'admin': 'Admin',
       'group': 'Group',
       'premium': 'Premium',
@@ -52,7 +54,6 @@ let handler  = async (m, { conn, usedPrefix: _p }) => {
       'owner': 'Owner',
       'host': 'Host',
       'advanced': 'Advanced',
-      'info': 'Info',
       '': 'No Category',
     }
     for (let plugin of Object.values(global.plugins))
@@ -80,11 +81,11 @@ let handler  = async (m, { conn, usedPrefix: _p }) => {
 ╿     Hai, %name !
 ├ ◩ Total : *%exp XP*
 ├ ◩ Tersisa : *%limit Limit*
-╿    Level *%level (%exp / %maxexp)* [%xp4levelup lagi untuk levelup]
-╿     %totalexp XP in Total
+╿      Level *%level (%exp / %maxexp)* [%xp4levelup lagi untuk levelup]
+╿         %totalexp XP in Total
 ╿
 ╿
-├ ◩ Hari : *%week* / %weton
+├ ◩ Hari : *%week* / *%weton*
 ├ ◩ Tanggal : *%date*
 ├ ◩ Waktu : *%time*
 ├ ◩ Lama Aktif : *%uptime (%muptime)*
